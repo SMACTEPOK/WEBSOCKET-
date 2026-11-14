@@ -17,17 +17,20 @@ export function useWebSocket(url, options = {}) {
       ws.current = new WebSocket(url);
 
       ws.current.onopen = () => {
+        console.log('🟢 [WS] З\'єднання відкрито (OPEN)');
         setReadyState(WebSocket.OPEN);
         reconnectCount.current = 0;
       };
 
       ws.current.onclose = () => {
+        console.log('🔴 [WS] З\'єднання закрито (CLOSED)');
         setReadyState(WebSocket.CLOSED);
         if (reconnect && reconnectCount.current < maxReconnectAttempts) {
           const timeout = Math.min(
             reconnectInterval * Math.pow(reconnectDecay, reconnectCount.current),
             maxReconnectInterval
           );
+          console.log(`🔄 [WS] Спроба перепідключення через ${timeout}мс...`);
           reconnectTimeout.current = setTimeout(() => {
             reconnectCount.current += 1;
             connect();
@@ -35,7 +38,10 @@ export function useWebSocket(url, options = {}) {
         }
       };
 
-      ws.current.onerror = () => setReadyState(WebSocket.CLOSING);
+      ws.current.onerror = () => {
+        console.log('⚠️ [WS] Помилка з\'єднання (ERROR)');
+        setReadyState(WebSocket.CLOSING);
+      };
 
       ws.current.onmessage = (event) => setLastMessage(event.data);
     } catch (error) {
@@ -48,7 +54,7 @@ export function useWebSocket(url, options = {}) {
     return () => {
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
       if (ws.current) {
-        ws.current.onclose = null; // prevent reconnection on unmount
+        ws.current.onclose = null;
         ws.current.close();
       }
     };
